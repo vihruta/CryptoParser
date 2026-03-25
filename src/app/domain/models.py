@@ -1,0 +1,36 @@
+from dataclasses import dataclass
+from datetime import datetime, timezone
+from decimal import Decimal
+from src.app.domain.errors import ServiceError
+
+
+@dataclass
+class QuoteInfo:
+    source: str
+    price: Decimal
+    time: datetime
+
+    def __post__init__(self):
+        if((self.source) is None):
+            raise ServiceError('No source of information')
+        if self.price < 0:
+            raise ServiceError('Price must be positive!')
+        
+        if self.time.tzinfo is None:
+            raise ServiceError('Time must be timezone-aware')
+        elif self.time.tzinfo != timezone.utc:
+            self.time = self.time.astimezone(timezone.utc)
+
+
+@dataclass
+class Quote:
+    currency: str
+    info: list[QuoteInfo]
+
+    def __post__init__(self):
+        if ((self.currency is None) or 
+        (self.currency.strip() == '')):
+            raise ServiceError('No asset!')
+        if len(self.info) == 0:
+            raise ServiceError('No info from exchange!')
+

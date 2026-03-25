@@ -1,0 +1,14 @@
+[project]
+name = "rates_service"
+version = "0.1.0"
+dependecies = [
+    "aiohttp",
+    "loguru",
+    "pydantic-settings"
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 88
