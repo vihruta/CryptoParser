@@ -15,9 +15,9 @@ class Settings(BaseSettings):
     RETRIES: int
     FAIL_FAST: bool
     LOG_LEVEL: str
-    RESULT_PATH: Path
+    OUTPUT_PATH: Path
 
-    @field_validator("RESULT_PATH", mode="before")
+    @field_validator("OUTPUT_PATH", mode="before")
     @classmethod
     def normalize_result_path(cls, value: Any) -> Path:
         if isinstance(value, str):
@@ -28,7 +28,7 @@ class Settings(BaseSettings):
             return base_dir / path
         if isinstance(value, Path):
             return value
-        raise ConfigError('Invalid RESULT_PATH')
+        raise ConfigError('Invalid OUTPUT_PATH')
     
     @field_validator("TIMEOUT_SEC")
     @classmethod
@@ -43,9 +43,14 @@ class Settings(BaseSettings):
         if value < 1:
             raise ConfigError('RETRIES must be > 1')
         return value
+    model_config = SettingsConfigDict(
+        env_file='.env',
+        env_file_encoding='utf-8',
+        extra='ignore'
+    )
 
 def load_setting() -> Settings:
     try:
-        return Settings()
+        return Settings() # type: ignore[call-arg]
     except ValidationError as exc:
         raise ConfigError(f'Invalid configrutation {exc}') from exc

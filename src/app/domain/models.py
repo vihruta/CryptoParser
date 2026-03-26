@@ -34,3 +34,20 @@ class Quote:
         if len(self.info) == 0:
             raise ServiceError('No info from exchange!')
 
+@dataclass
+class ErrorItem:
+    asset: str
+    source: str
+    error_type: str
+    error_msg:str
+
+@dataclass
+class ServiceResult:
+    run_id: str
+    total_assets: int
+    saved_count: int
+    errors: list[ErrorItem]
+
+    @property
+    def errors_count(self) -> int:
+        return(len(self.errors))

@@ -1,4 +1,0 @@
-//COINGECKO_APIKEY "x-cg-demo-api-key": "CG-BPXx8nUfGwUn94rezXZjCdT4"
-//COINGWECKO ETH url = "https://api.coingecko.com/api/v3/coins/ethereum/tickers?exchange_ids=kraken"
-//BINANCE https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT
-//BYBIT URL https://api-testnet.bybit.com/v5/market/tickers?category=spot&symbol=BTCUSDT
