@@ -24,10 +24,11 @@ class BybitClient(ClientProtocol):
                                              params={"category": "spot", 
                                                      "symbol": asset}) as response:
                     if response.status == 200:
+                        self._logger.info(f'Recieved response with status {response.status}')
                         try:
                             json_response = await response.json()
                         except ValueError as exc:
-                            msg=f'Response is no JSON. Asset:{asset}, request_id={request_id}'
+                            msg=f'Response is not JSON. Asset:{asset}, request_id={request_id}'
                             self._logger.error(msg)
                             raise ClientError(msg) from exc
                         

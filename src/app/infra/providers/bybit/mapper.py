@@ -1,25 +1,28 @@
 from decimal import Decimal
 from datetime import datetime, timezone
 from src.app.domain.models import QuoteInfo
-from src.app.domain.errors import ServiceError
+from src.app.domain.errors import ValidationError
 
 def response_validation(data: dict, asset: str) -> QuoteInfo:
     if 'list' in data['result'] and asset in data['result']['list'][0]['symbol']:
+        
         if 'lastPrice' in data['result']['list'][0]:
             price = Decimal(data['result']['list'][0]['lastPrice'])
         else:
-            raise ServiceError('No definition for price!')
+            raise ValidationError(f'No definition for price!. Asset{asset}')
+        
         if 'time' in data:
             update_time = datetime.fromtimestamp(data['time'] / 1000, 
                                                  tz=timezone.utc)
         else:
-            raise ServiceError('No definition for time!')
+            raise ValidationError(f'No definition for time! Asset:{asset}')
+        
         try:
             return QuoteInfo(source='bybit', 
                              price=price,
                              time=update_time)
-        except ServiceError:
-            raise ServiceError('No validation!')
+        except ValidationError as exc:
+            raise ValidationError(f'No validation! Asset:{asset}') from exc
 
     else:
-        raise ServiceError('No data!') 
+        raise ValidationError(f'No data! Asset: {asset}') 

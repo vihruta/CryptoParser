@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from decimal import Decimal
-from src.app.domain.errors import ServiceError
+from src.app.domain.errors import ServiceError, ValidationError
 
 
 @dataclass
@@ -12,12 +12,12 @@ class QuoteInfo:
 
     def __post__init__(self):
         if((self.source) is None):
-            raise ServiceError('No source of information')
+            raise ValidationError('No source of information')
         if self.price < 0:
-            raise ServiceError('Price must be positive!')
+            raise ValidationError('Price must be positive!')
         
         if self.time.tzinfo is None:
-            raise ServiceError('Time must be timezone-aware')
+            raise ValidationError('Time must be timezone-aware')
         elif self.time.tzinfo != timezone.utc:
             self.time = self.time.astimezone(timezone.utc)
 
@@ -30,9 +30,9 @@ class Quote:
     def __post__init__(self):
         if ((self.currency is None) or 
         (self.currency.strip() == '')):
-            raise ServiceError('No asset!')
+            raise ValidationError('No asset!')
         if len(self.info) == 0:
-            raise ServiceError('No info from exchange!')
+            raise ValidationError('No info from exchange!')
 
 @dataclass
 class ErrorItem:
