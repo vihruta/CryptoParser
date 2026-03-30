@@ -10,7 +10,7 @@ class QuoteInfo:
     price: Decimal
     time: datetime
 
-    def __post__init__(self):
+    def __post_init__(self):
         if((self.source) is None):
             raise ValidationError('No source of information')
         if self.price < 0:
@@ -27,7 +27,7 @@ class Quote:
     currency: str
     info: list[QuoteInfo]
 
-    def __post__init__(self):
+    def __post_init__(self):
         if ((self.currency is None) or 
         (self.currency.strip() == '')):
             raise ValidationError('No asset!')

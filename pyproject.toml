@@ -1,7 +1,7 @@
 [project]
 name = "rates_service"
 version = "0.1.0"
-dependecies = [
+dependencies = [
     "aiohttp",
     "loguru",
     "pydantic-settings",
