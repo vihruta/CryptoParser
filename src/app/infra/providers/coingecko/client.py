@@ -44,6 +44,7 @@ class CoinGeckoClient(ClientProtocol):
         self._settings = settings
         self._logger = logger
 
+    provider = 'coingecko'
     async def fetch_rate(self, asset, request_id) -> QuoteInfo:
         vs_currency = 'usd'
         try:
@@ -78,7 +79,7 @@ class CoinGeckoClient(ClientProtocol):
                             self._logger.error(msg)
                             raise ClientError(msg)
                         
-                        qoute_info = response_validation(json_response, asset, coin_id, vs_currency)
+                        qoute_info = response_validation(json_response, asset, coin_id, vs_currency, self.provider)
                         return qoute_info
                     
                 except (aiohttp.ClientError, asyncio.TimeoutError) as exc:

@@ -15,6 +15,7 @@ class BybitClient(ClientProtocol):
         self._session = session
         self._logger = logger
 
+    provider = 'bybit'
     async def fetch_rate(self, asset, request_id) -> QuoteInfo:
         asset = asset + 'USDT'
         for attempt in range(1, self._settings.RETRIES + 1):
@@ -46,7 +47,7 @@ class BybitClient(ClientProtocol):
                          self._logger.error(msg)
                          raise ClientError(msg)
                     
-                quote_info = response_validation(json_response, asset)
+                quote_info = response_validation(json_response, asset, self.provider)
                 return quote_info
             
             except (aiohttp.ClientError, asyncio.TimeoutError) as exc:

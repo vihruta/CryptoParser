@@ -2,7 +2,7 @@ import aiohttp
 import asyncio
 from src.app.domain.protocols import ClientProtocol
 from src.app.config import Settings
-from src.app.domain.errors import ClientError
+from src.app.domain.errors import ClientError, ValidationError
 from src.app.domain.models import Quote, QuoteInfo
 from src.app.infra.providers.binance.mapper import response_validation
 
@@ -13,6 +13,7 @@ class BinanceClient(ClientProtocol):
         self._settings = settings
         self._logger = logger
         self._session = session
+    provider = 'binance'
     
     async def fetch_rate(self, asset, request_id) -> QuoteInfo:
         asset = asset + 'USDT'
@@ -42,9 +43,12 @@ class BinanceClient(ClientProtocol):
                         msg=f'Bad status. Asset: {asset}, id: {request_id}'
                         self._logger.info(msg)
                         raise ClientError(msg)
-                    
-                    quote_info = response_validation(json_response, asset)
-                    return quote_info
+                    try:
+                        quote_info = response_validation(json_response, asset, self.provider)
+                        return quote_info
+                    except ClientError as exc:
+                        msg = f'Error while mapping data. Asset: {asset}. Source: {self.provider}'
+                        raise ValidationError(msg) from exc
                 
             except (aiohttp.ClientError, asyncio.TimeoutError) as exc:
                 if attempt >= self._settings.RETRIES:

@@ -1,7 +1,8 @@
 from src.app.domain.protocols import ClientProtocol, StorageProtocol
 from src.app.config import Settings
-from src.app.domain.models import ErrorItem, ServiceResult
-from src.app.domain.errors import ServiceError, ClientError
+from src.app.domain.models import ErrorItem, ServiceResult, Quote
+from src.app.domain.errors import ServiceError, ClientError, ValidationError
+
 
 import uuid
 
@@ -25,7 +26,7 @@ class Collector:
             try:
                 quote = await client.fetch_rate(asset, request_id)
                 quotes.append(quote)
-            except (ServiceError, ClientError) as exc:
+            except (ServiceError, ClientError, ValidationError) as exc:
                 msg = "Service Error while processing asset"
                 self._logger.error(
                     msg, asset=asset,
@@ -53,18 +54,20 @@ class Collector:
 
     async def process_assets(self, assets: list[str], 
                              run_id: str) -> ServiceResult:
-        quotes = []
+        quotes : list[Quote] = []
         errors_list = []
         quotes_per_assets = []
+        saved_count = 0
         errors_list_per_asset  =[]
         normalize_assets_list = self.normalize_assets(assets=assets)
         for asset in normalize_assets_list:
             quotes_per_assets, errors_list_per_asset = await self.call_the_client(asset=asset)
-            quotes.extend(quotes_per_assets)
+            quotes.append(Quote(currency=asset, info=quotes_per_assets))
+            saved_count += len(quotes_per_assets)
             errors_list.extend(errors_list_per_asset)
         if quotes:
             await self._storage.save_quotes(run_id, quotes)
         return ServiceResult(run_id=run_id, total_assets=len(normalize_assets_list),
-                             saved_count=len(quotes), errors=errors_list)
+                             saved_count=saved_count, errors=errors_list)
         
     
