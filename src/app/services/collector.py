@@ -46,8 +46,9 @@ class Collector:
     def normalize_assets(self, assets: list[str]) -> list:
         normalize_assets_list = []
         for asset in assets:
-            normalize_asset_tmp = asset.strip().upper()
-            normalize_assets_list.append(normalize_asset_tmp)
+            normalize_asset_tmp = asset.strip()
+            if normalize_asset_tmp:
+                normalize_assets_list.append(normalize_asset_tmp.upper())
         normalize_assets_list = list(dict.fromkeys(normalize_assets_list))
         return normalize_assets_list
     
@@ -61,10 +62,14 @@ class Collector:
         errors_list_per_asset  =[]
         normalize_assets_list = self.normalize_assets(assets=assets)
         for asset in normalize_assets_list:
-            quotes_per_assets, errors_list_per_asset = await self.call_the_client(asset=asset)
-            quotes.append(Quote(currency=asset, info=quotes_per_assets))
-            saved_count += len(quotes_per_assets)
-            errors_list.extend(errors_list_per_asset)
+            try:
+                quotes_per_assets, errors_list_per_asset = await self.call_the_client(asset=asset)
+                if quotes_per_assets:
+                    quotes.append(Quote(currency=asset, info=quotes_per_assets))
+                    saved_count += len(quotes_per_assets)
+                errors_list.extend(errors_list_per_asset)
+            except ClientError as exc:
+                raise ClientError from exc
         if quotes:
             await self._storage.save_quotes(run_id, quotes)
         return ServiceResult(run_id=run_id, total_assets=len(normalize_assets_list),
