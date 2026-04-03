@@ -44,13 +44,13 @@ class CoinGeckoClient(ClientProtocol):
         self._settings = settings
         self._logger = logger
         self.provider = 'Coingecko'
-        
+
     async def fetch_rate(self, asset, request_id) -> QuoteInfo:
         vs_currency = 'usd'
         try:
             coin_id = COINGECKO_ASSET_MAP[asset]
             for attempt in range(1, self._settings.RETRIES + 1):
-                self._logger.info(f'Asset={asset}, id={request_id}, attempt={attempt}')
+                self._logger.info(f'Asset:{asset}, id={request_id}, attempt={attempt}')
                 try:
                     headers = {"x-cg-demo-api-key": self._settings.COINGECKO_APIKEY}
                     params = {"vs_currencies": vs_currency,"ids": coin_id, "include_last_updated_at": "true"}
@@ -61,21 +61,21 @@ class CoinGeckoClient(ClientProtocol):
                             try:
                                 json_response = await response.json()
                             except ValueError as exc:
-                                msg = f'Response in not JSON. Asset:{asset}, request_id: {request_id}'
+                                msg = f'Response in not JSON. Asset:{asset}, request_id:{request_id}'
                                 self._logger.error(msg)
                                 raise ClientError(msg) from exc
                         elif response.status == 429 or 500 < response.status < 600:
                             if attempt >= self._settings.RETRIES:
-                                msg = f'Max retries. Asset:{asset}, request_id: {request_id}'
+                                msg = f'Max retries. Asset:{asset}, request_id:{request_id}'
                                 self._logger.error(msg)
                                 raise ClientError(msg)
                             else:
                                 await asyncio.sleep(0.2 * (2 ** attempt))
                                 msg = f'''Bad status: {response.status}.Retry. 
-                                Asset: {asset}, request_id:{request_id}'''
+                                Asset:{asset}, request_id:{request_id}'''
                                 continue
                         else:
-                            msg = f'Bad status: {response.status}. Asset: {asset}, request_id:{request_id}'
+                            msg = f'Bad status: {response.status}. Asset:{asset}, request_id:{request_id}'
                             self._logger.error(msg)
                             raise ClientError(msg)
                         
@@ -84,7 +84,7 @@ class CoinGeckoClient(ClientProtocol):
                     
                 except (aiohttp.ClientError, asyncio.TimeoutError) as exc:
                     if attempt >= self._settings.RETRIES:
-                        msg = f'Max retries. Asset:{asset}, request_id: {request_id}'
+                        msg = f'Max retries. Asset:{asset}, request_id:{request_id}'
                         self._logger.error(msg)
                         raise ClientError(msg) from exc
                     else:
@@ -92,7 +92,7 @@ class CoinGeckoClient(ClientProtocol):
                         continue
 
         except KeyError as exc:
-            msg = f'No asset in asset map. Asset: {asset}. Request id:{request_id}'
+            msg = f'No asset in asset map. Asset:{asset}. Request id:{request_id}'
             self._logger.error(msg)
             raise ClientError(msg) from exc
-        raise ClientError(f'Unexpected fetch failure. Asset={asset}, id={request_id}')
+        raise ClientError(f'Unexpected fetch failure. Asset:{asset}, id={request_id}')

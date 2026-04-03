@@ -5,4 +5,4 @@ __pycache__/
 scripts
 need.txt
 plans.txt
-result.txt
+result.jsonl

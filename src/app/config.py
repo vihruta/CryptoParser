@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     COINGECKO_URL: str
     COINGECKO_APIKEY: str
     TIMEOUT_SEC: int
+    CONCURRENCY: int
     RETRIES: int
     FAIL_FAST: bool
     LOG_LEVEL: str
@@ -29,6 +30,13 @@ class Settings(BaseSettings):
         if isinstance(value, Path):
             return value
         raise ConfigError('Invalid OUTPUT_PATH')
+    
+    @field_validator("CONCURRENCY")
+    @classmethod
+    def validate_concurrency(cls, value: int) -> int:
+        if value < 0:
+            raise ConfigError('CONCURRENCY must be positive!')
+        return value
     
     @field_validator("TIMEOUT_SEC")
     @classmethod

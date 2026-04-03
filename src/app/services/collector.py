@@ -1,10 +1,11 @@
+import uuid
+import asyncio
+
 from src.app.domain.protocols import ClientProtocol, StorageProtocol
 from src.app.config import Settings
 from src.app.domain.models import ErrorItem, ServiceResult, Quote
 from src.app.domain.errors import ServiceError, ClientError, ValidationError
 
-
-import uuid
 
 class Collector:
     def __init__(self,
@@ -16,36 +17,67 @@ class Collector:
         self._storage = storage
         self._settings = settings
         self._logger = logger
+        self._semaphore = asyncio.Semaphore(self._settings.CONCURRENCY)
 
+    async def _fetch_from_client(self, client, asset: str):
+        request_id = str(uuid.uuid4())
 
-    async def call_the_client(self, asset:str):
-        quotes = []
-        error_list = []
-        for client in self._clients:
-            request_id = str(uuid.uuid4())
-            try:
+        try:
+            async with self._semaphore:
                 quote = await client.fetch_rate(asset, request_id)
-                quotes.append(quote)
-            except (ServiceError, ClientError, ValidationError) as exc:
-                msg = f"Service error while processing asset. Error:{str(exc)}. Asset:{asset}. Request_id: {request_id}"
+                return quote, None
+        
+        except (ServiceError, ClientError, ValidationError) as exc:
+                msg = f"Error while fetching quote. Error:{str(exc)}. Asset:{asset}. Request_id: {request_id}"
                 self._logger.error(
                     msg, asset=asset,
                     request_id=request_id,
                     error=str(exc)
                 )
-                error_list.append(ErrorItem(asset=asset,
-                                            source=client.provider,
-                                            error_type=exc.__class__.__name__,
-                                            error_msg=str(exc)))
+
                 if self._settings.FAIL_FAST:
                     raise
-                continue
+
+                return None, ErrorItem(
+                                    asset=asset,
+                                    source=client.provider,
+                                    error_type=exc.__class__.__name__,
+                                    error_msg=str(exc)
+                                )
+
+
+    async def call_the_client(self, asset:str):
+        quotes = []
+        error_list = []
+
+        tasks = [
+            asyncio.create_task(self._fetch_from_client(client, asset))
+            for client in self._clients
+        ]
+
+        try:
+            result = await asyncio.gather(*tasks)
+        except (ServiceError, ClientError, ValidationError):
+            for task in tasks:
+                if not task.done():
+                    task.cancel()
+            await asyncio.gather(*tasks, return_exceptions=True)
+            raise
+
+        for quote, error in result:
+            if quote is not None:
+                quotes.append(quote)
+            
+            if error is not None:
+                error_list.append(error)
+
         return quotes, error_list
     
 
     def normalize_assets(self, assets: list[str]) -> list:
         assets = [asset.upper() for asset in assets if asset.upper().split()]
         assets = list(set(assets))
+        assets.sort()
         return assets
     
 
@@ -55,9 +87,7 @@ class Collector:
             raise ClientError('No assets!')
         quotes : list[Quote] = []
         errors_list = []
-        quotes_per_assets = []
         saved_count = 0
-        errors_list_per_asset  =[]
         normalize_assets_list = self.normalize_assets(assets=assets)
         for asset in normalize_assets_list:
             try:
