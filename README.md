@@ -45,7 +45,7 @@ CONCURRENCY=5
 RETRIES=5
 FAIL_FAST=0
 LOG_LEVEL=INFO
-OUTPUT_PATH=result.txt
+OUTPUT_PATH=result.jsonl
 ```
 
 ## Usage
