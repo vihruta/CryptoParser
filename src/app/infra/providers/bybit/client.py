@@ -14,12 +14,12 @@ class BybitClient(ClientProtocol):
         self._settings = settings
         self._session = session
         self._logger = logger
-
-    provider = 'bybit'
+        self.provider = 'Bybit'
+        
     async def fetch_rate(self, asset, request_id) -> QuoteInfo:
         asset = asset + 'USDT'
         for attempt in range(1, self._settings.RETRIES + 1):
-            self._logger.info(f'Asset={asset}, id={request_id}, attempt={attempt}')
+            self._logger.info(f'Asset:{asset}, id={request_id}, attempt={attempt}')
             try:
                 async with self._session.get(self._settings.BYBIT_URL, 
                                              params={"category": "spot", 
@@ -29,13 +29,13 @@ class BybitClient(ClientProtocol):
                         try:
                             json_response = await response.json()
                         except ValueError as exc:
-                            msg=f'Response is not JSON. Asset:{asset}, request_id={request_id}'
+                            msg=f'Response is not JSON. Asset:{asset}, request_id:{request_id}'
                             self._logger.error(msg)
                             raise ClientError(msg) from exc
                         
                     elif response.status == 429 or 500 < response.status < 600:
                         if attempt >= self._settings.RETRIES:
-                            msg=f'Max retries. Asset:{asset}, request_id={request_id}'
+                            msg=f'Max retries. Asset:{asset}, request_id:{request_id}'
                             self._logger.error(msg)
                             raise ClientError(msg)
                         else:
@@ -43,7 +43,7 @@ class BybitClient(ClientProtocol):
                             continue
 
                     else:
-                         msg=f'Bad status {response.status}. Asset={asset}, request_id={request_id}'
+                         msg=f'Bad status {response.status}. Asset:{asset}, request_id:{request_id}'
                          self._logger.error(msg)
                          raise ClientError(msg)
                     
@@ -52,12 +52,12 @@ class BybitClient(ClientProtocol):
             
             except (aiohttp.ClientError, asyncio.TimeoutError) as exc:
                 if attempt >= self._settings.RETRIES:
-                            msg=f'Max retries. Asset:{asset}, request_id={request_id}'
+                            msg=f'Max retries. Asset:{asset}, request_id:{request_id}'
                             self._logger.error(msg)
                             raise ClientError(msg) from exc
                 else:
-                    msg=f'Error: {exc.__class__.__name__}. Asset: {asset}, request_id={request_id}'
+                    msg=f'Error: {exc.__class__.__name__}. Asset:{asset}, request_id:{request_id}'
                     self._logger.error(msg)
                     await asyncio.sleep(0.2 * (2 ** attempt))
                     continue
-        raise ClientError(f'Unexpected fetch failure. Asset={asset}, id={request_id}')
+        raise ClientError(f'Unexpected fetch failure. Asset:{asset}, id={request_id}')

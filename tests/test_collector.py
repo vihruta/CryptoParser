@@ -83,6 +83,7 @@ def make_collector(settings, logger):
     
     return _make
 
+
 @pytest.mark.asyncio
 async def test_service_dedup(raw_btc, make_collector):
     client = FakeClient(responses=raw_btc)
@@ -113,6 +114,32 @@ def test_normalize_assets(raw_btc, make_collector):
 
     assert len(result) == 2
     assert result == ['BTC', 'ETH']
+
+@pytest.mark.asyncio
+async def test_collector_negative_price(make_collector):
+    raw_btc = {
+            "BTC": {
+                "LAST_UPDATE_TS": 1700000000,
+                "PRICE": -123.45
+            }
+    }
+
+    client = FakeClient(responses=raw_btc)
+    collector, storage = make_collector(clients=[client])
+    assets = ['BTC']
+
+    result = await collector.process_assets(assets=assets, run_id='run-1')
+
+    assert result.total_assets == 1
+    assert result.errors_count == 1
+    assert result.errors[0].error_type == 'ValidationError'
+    assert result.saved_count == 0
+
+    assert len(client.calls) == 1
+    assert client.calls[0][0] == 'BTC'
+
+    assert storage.calls == 0
+    assert storage.saved == []
 
 
 @pytest.mark.asyncio
@@ -194,3 +221,42 @@ async def test_all_clients_are_down(raw_btc, make_collector):
     
     assert storage.calls == 0
     assert len(storage.saved) == 0
+
+@pytest.mark.asyncio
+async def test_fail_fast_true_raise_clienterror(raw_btc):
+    settings = Settings(
+            BINANCE_URL='x',
+            BYBIT_URL='x',
+            COINGECKO_URL='x',
+            COINGECKO_APIKEY='x',
+            TIMEOUT_SEC=3,
+            RETRIES=5,
+            FAIL_FAST=True,
+            LOG_LEVEL="INFO",
+            OUTPUT_PATH=Path("result.txt")
+        )
+
+    client = FakeClient(responses=raw_btc, errors={'BTC'})
+    storage = FakeStorage()
+    collector = Collector(clients=[client], storage=storage, 
+                          settings=settings, logger=DummyLogger())
+
+    assets = ['BTC']
+
+    with pytest.raises(ClientError):
+        await collector.process_assets(assets=assets, run_id='run-1')
+    
+    assert len(client.calls) == 1
+    assert client.calls[0][0] == 'BTC'
+
+    assert storage.calls == 0
+
+@pytest.mark.asyncio
+async def test_collector_empty_input(raw_btc, make_collector):
+    client = FakeClient(responses=raw_btc)
+    
+    collector, storage = make_collector(clients=[client])
+
+    assets = []
+    with pytest.raises(ClientError):
+        await collector.process_assets(assets=assets, run_id='run-1')

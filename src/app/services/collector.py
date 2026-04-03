@@ -27,7 +27,7 @@ class Collector:
                 quote = await client.fetch_rate(asset, request_id)
                 quotes.append(quote)
             except (ServiceError, ClientError, ValidationError) as exc:
-                msg = "Service Error while processing asset"
+                msg = f"Service error while processing asset. Error:{str(exc)}. Asset:{asset}. Request_id: {request_id}"
                 self._logger.error(
                     msg, asset=asset,
                     request_id=request_id,
@@ -44,17 +44,15 @@ class Collector:
     
 
     def normalize_assets(self, assets: list[str]) -> list:
-        normalize_assets_list = []
-        for asset in assets:
-            normalize_asset_tmp = asset.strip()
-            if normalize_asset_tmp:
-                normalize_assets_list.append(normalize_asset_tmp.upper())
-        normalize_assets_list = list(dict.fromkeys(normalize_assets_list))
-        return normalize_assets_list
+        assets = [asset.upper() for asset in assets if asset.upper().split()]
+        assets = list(set(assets))
+        return assets
     
 
     async def process_assets(self, assets: list[str], 
                              run_id: str) -> ServiceResult:
+        if not assets:
+            raise ClientError('No assets!')
         quotes : list[Quote] = []
         errors_list = []
         quotes_per_assets = []
@@ -68,8 +66,8 @@ class Collector:
                     quotes.append(Quote(currency=asset, info=quotes_per_assets))
                     saved_count += len(quotes_per_assets)
                 errors_list.extend(errors_list_per_asset)
-            except ClientError as exc:
-                raise ClientError from exc
+            except ClientError:
+                raise
         if quotes:
             await self._storage.save_quotes(run_id, quotes)
         return ServiceResult(run_id=run_id, total_assets=len(normalize_assets_list),

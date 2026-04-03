@@ -1,4 +1,4 @@
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from datetime import datetime, timezone
 
 from src.app.domain.models import QuoteInfo
@@ -8,22 +8,30 @@ def response_validation(data: dict, asset: str, coin_id: str, vs_currency: str, 
     if coin_id in data:
 
         if vs_currency in data[coin_id]:
-            price = Decimal(data[coin_id][vs_currency])
-            price = price.quantize(Decimal("1.0000"))
+            try:
+                price = Decimal(data[coin_id][vs_currency])
+                price = price.quantize(Decimal("1.0000"))
+            except (TypeError, InvalidOperation):
+                raise ValidationError(f'Price is not number.Asset:{asset} Source:{provider}')
         else:
-            raise ValidationError(f'No definition for price!. Asset{asset} Source: {provider}')
+            raise ValidationError(f'No definition for price!. Asset:{asset} Source:{provider}')
         
         if 'last_updated_at' in data[coin_id]:
-            updated_time = datetime.fromtimestamp(data[coin_id]['last_updated_at']/1000, 
-                                                  tz=timezone.utc)
+            try:
+                if data[coin_id]['last_updated_at'] > 10**12:
+                    updated_time = datetime.fromtimestamp(data[coin_id]['last_updated_at']/1000, 
+                                                          tz=timezone.utc)
+                else:
+                    updated_time = datetime.fromtimestamp(data[coin_id]['last_updated_at'], 
+                                                          tz=timezone.utc)
+            except (TypeError, ValueError) :
+                raise ValidationError(f'Time is not number. Asset:{asset} Source:{provider}')
         else:
-            raise ValidationError(f'No definition for time! Asset:{asset} Source: {provider}')
+            raise ValidationError(f'No definition for time! Asset:{asset} Source:{provider}')
         
-        try:
-            return QuoteInfo(source=provider, price=price,
-                             time=updated_time)
-        except ValidationError as exc:
-            raise ValidationError(f'No validation. Asset: {asset} Source: {provider}') from exc
+        return QuoteInfo(source=provider, 
+                         price=price,
+                         time=updated_time)
         
     else:
-        raise ValidationError(f'No data! Asset:{asset} Source: {provider}')
+        raise ValidationError(f'No data! Asset:{asset} Source:{provider}')

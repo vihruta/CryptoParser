@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from decimal import Decimal
-from src.app.domain.errors import ServiceError, ValidationError
+from src.app.domain.errors import ValidationError
 
 
 @dataclass

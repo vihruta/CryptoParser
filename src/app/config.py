@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import Any
 
 from pydantic import field_validator
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import BaseSettings, SettingsConfigDict, SettingsError
 from src.app.domain.errors import ConfigError, ValidationError
 
 
@@ -52,5 +52,5 @@ class Settings(BaseSettings):
 def load_setting() -> Settings:
     try:
         return Settings() # type: ignore[call-arg]
-    except ValidationError as exc:
+    except (ValidationError, SettingsError) as exc:
         raise ConfigError(f'Invalid configrutation {exc}') from exc

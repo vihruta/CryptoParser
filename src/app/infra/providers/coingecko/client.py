@@ -43,8 +43,8 @@ class CoinGeckoClient(ClientProtocol):
         self._session = session
         self._settings = settings
         self._logger = logger
-
-    provider = 'coingecko'
+        self.provider = 'Coingecko'
+        
     async def fetch_rate(self, asset, request_id) -> QuoteInfo:
         vs_currency = 'usd'
         try:
