@@ -5,7 +5,8 @@
 
 ## Features
 - параллельные запросы (async + semaphore)
-- retry и timeout
+- retry для сетевых ошибок
+- timeout на каждый запрос
 - нормализация данных к единой модели
 - логирование
 - сохранение результата в файл (JSON lines)
@@ -13,11 +14,11 @@
 ## Stack
 
 - Python 3.12+
-- aiohttp — HTTP client
-- asyncio — asynchronous execution
-- pydantic-settings — configuration from environment variables
-- loguru — logging
-- pytest — testing
+- aiohttp — HTTP клиент
+- asyncio — Асинхронность
+- pydantic-settings — Конфигурация из переменных
+- loguru — логи
+- pytest — тестирование
 
 ## Installation
 ```bash
@@ -40,11 +41,10 @@ BINANCE_URL=https://api.binance.com/api/v3/ticker/24hr
 BYBIT_URL=https://api-testnet.bybit.com/v5/market/tickers
 COINGECKO_URL=https://api.coingecko.com/api/v3/simple/price
 COINGECKO_APIKEY=
-TIMEOUT_SEC=3
-CONCURRENCY=5
-RETRIES=5
-FAIL_FAST=0
-LOG_LEVEL=INFO
+TIMEOUT_SEC=3        # timeout одного запроса
+CONCURRENCY=5        # максимальное количество одновременных запросов
+RETRIES=5            # количество повторных попыток
+FAIL_FAST=0          # остановить выполнение при первой ошибке (1/0)
 OUTPUT_PATH=result.jsonl
 ```
 
@@ -52,6 +52,8 @@ OUTPUT_PATH=result.jsonl
 
 ```bash
 python -m app --assets BTC ETH SOL
+# или
+python -m app --assets btc eth sol
 ```
 
 ## Architecture
@@ -76,6 +78,7 @@ collected 30 items
 ```
 
 ### Results
+Программа выводит статистику выполнения и сохраняет результат в файл OUTPUT_PATH.
 Example output:
 ```json
 {"asset": "BTC", "price": "66862.9400", "source": "Binance", "time": "2026-04-03 23:13:44.001000+00:00", "run-id": "34d02758-539c-46d9-8a5b-d96a0a7ff15e"}

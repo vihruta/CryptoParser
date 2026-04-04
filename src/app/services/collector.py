@@ -46,7 +46,7 @@ class Collector:
                                 )
 
 
-    async def call_the_client(self, asset:str):
+    async def collect_quotes_for_asset(self, asset:str):
         quotes = []
         error_list = []
 
@@ -75,8 +75,8 @@ class Collector:
     
 
     def normalize_assets(self, assets: list[str]) -> list:
-        assets = [asset.upper() for asset in assets if asset.upper().split()]
-        assets = list(set(assets))
+        assets = [asset.strip().upper() for asset in assets if asset.strip()]
+        assets = list(dict.fromkeys(assets))
         assets.sort()
         return assets
     
@@ -84,20 +84,17 @@ class Collector:
     async def process_assets(self, assets: list[str], 
                              run_id: str) -> ServiceResult:
         if not assets:
-            raise ClientError('No assets!')
+            raise ServiceError('No assets!')
         quotes : list[Quote] = []
         errors_list = []
         saved_count = 0
         normalize_assets_list = self.normalize_assets(assets=assets)
         for asset in normalize_assets_list:
-            try:
-                quotes_per_assets, errors_list_per_asset = await self.call_the_client(asset=asset)
-                if quotes_per_assets:
-                    quotes.append(Quote(currency=asset, info=quotes_per_assets))
-                    saved_count += len(quotes_per_assets)
-                errors_list.extend(errors_list_per_asset)
-            except ClientError:
-                raise
+            quotes_per_assets, errors_list_per_asset = await self.collect_quotes_for_asset(asset=asset)
+            if quotes_per_assets:
+                quotes.append(Quote(currency=asset, info=quotes_per_assets))
+                saved_count += len(quotes_per_assets)
+            errors_list.extend(errors_list_per_asset)
         if quotes:
             await self._storage.save_quotes(run_id, quotes)
         return ServiceResult(run_id=run_id, total_assets=len(normalize_assets_list),

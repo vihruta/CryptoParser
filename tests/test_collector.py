@@ -5,7 +5,7 @@ from pathlib import Path
 from datetime import datetime, timezone
 from src.app.services.collector import Collector
 from src.app.domain.models import QuoteInfo, Quote
-from src.app.domain.errors import ClientError
+from src.app.domain.errors import ClientError, ServiceError
 from src.app.config import Settings
 
 class FakeClient:
@@ -55,10 +55,11 @@ def settings() -> Settings:
         COINGECKO_URL='x',
         COINGECKO_APIKEY='x',
         TIMEOUT_SEC=3,
+        CONCURRENCY=5,
         RETRIES=5,
         FAIL_FAST=False,
         LOG_LEVEL="INFO",
-        OUTPUT_PATH=Path("result.txt")
+        OUTPUT_PATH=Path("result.jsonl")
     )
 
 @pytest.fixture
@@ -258,5 +259,5 @@ async def test_collector_empty_input(raw_btc, make_collector):
     collector, storage = make_collector(clients=[client])
 
     assets = []
-    with pytest.raises(ClientError):
+    with pytest.raises(ServiceError):
         await collector.process_assets(assets=assets, run_id='run-1')
